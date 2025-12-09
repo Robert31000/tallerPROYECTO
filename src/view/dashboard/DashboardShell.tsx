@@ -71,6 +71,13 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
             >
               Publicaciones donaciones
             </NavLink>
+
+            <NavLink
+              to="/dashboard/inventario"
+              className={({ isActive }) => linkClasses(isActive)}
+            >
+              Inventario de donaciones
+            </NavLink>
           </nav>
         </div>
 

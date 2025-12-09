@@ -8,6 +8,7 @@ import {
   MessageCircle,
   HeartHandshake,
 } from "lucide-react";
+import { DonationModal } from "./DonationModal";
 
 type EstadoPublicacion = "PUBLICADA" | "FINALIZADA";
 
@@ -140,6 +141,7 @@ export default function CatalogoPublicacionesPage() {
     "PUBLICADA",
   );
 
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const [seleccionada, setSeleccionada] = useState<Publicacion | null>(null);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [enviandoComentario, setEnviandoComentario] = useState(false);
@@ -411,11 +413,7 @@ export default function CatalogoPublicacionesPage() {
                       <button
                         type="button"
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                        onClick={() =>
-                          alert(
-                            "Aquí iría el flujo real para crear una donación (CU09).",
-                          )
-                        }
+                        onClick={() => setShowDonationModal(true)}
                       >
                         <HeartHandshake className="w-4 h-4" />
                         Donar a esta causa
@@ -465,6 +463,28 @@ export default function CatalogoPublicacionesPage() {
           )}
         </div>
       </div>
+
+      {seleccionada && (
+        <DonationModal
+          open={showDonationModal}
+          onClose={() => setShowDonationModal(false)}
+          publicacion={{
+            id: seleccionada.id,
+            codigo: seleccionada.codigo,
+            titulo: seleccionada.titulo,
+          }}
+          onSuccess={(don) => {
+            // 🔹 Actualizamos números localmente SOLO como mock
+            if (don.tipo === "MONETARIA" && don.monto && seleccionada) {
+              seleccionada.totalDonado += don.monto;
+              seleccionada.numDonaciones += 1;
+            } else {
+              // donación en especie: solo contamos cantidad
+              seleccionada.numDonaciones += 1;
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

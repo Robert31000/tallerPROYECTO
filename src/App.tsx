@@ -9,6 +9,7 @@ import UsersRolesPage from "./view/dashboard/UserRolesPage";
 import NuevaSolicitudPage from "./view/solicitudes/NuevaSolicitudPage";
 import RevisarSolicitudesPage from "./view/dashboard/RevisarSolicitudesPage";
 import VerPublicacionesPage from "./view/dashboard/VerPublicacionesPage";
+import InventarioPage from "./view/dashboard/InventarioPage";
 
 const router = createBrowserRouter([
   {
@@ -66,6 +67,15 @@ const router = createBrowserRouter([
     element: (
       <DashboardShell>
         <VerPublicacionesPage />
+      </DashboardShell>
+    ),
+  },
+
+  {
+    path: "/dashboard/inventario",
+    element: (
+      <DashboardShell>
+        <InventarioPage />
       </DashboardShell>
     ),
   },
