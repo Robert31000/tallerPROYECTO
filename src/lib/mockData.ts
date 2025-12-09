@@ -1,0 +1,115 @@
+import type { Beneficiary, Need, Transaction } from "./typest";
+
+export const beneficiaries: Beneficiary[] = [
+  {
+    id: "b1",
+    name: "Fundación Manos Solidarias",
+    slug: "manos-solidarias",
+    description:
+      "Apoya a familias en situación de vulnerabilidad en Santa Cruz.",
+    city: "Santa Cruz de la Sierra",
+    country: "Bolivia",
+    activeNeeds: 2,
+    totalReceived: 3500,
+    totalDistributed: 2100,
+  },
+  {
+    id: "b2",
+    name: "Centro de Salud Samay",
+    slug: "samay-salud",
+    description: "Atención médica y kinesiología a bajo costo.",
+    city: "Samaipata",
+    country: "Bolivia",
+    activeNeeds: 1,
+    totalReceived: 1800,
+    totalDistributed: 900,
+  },
+];
+
+export const needs: Need[] = [
+  {
+    id: "n1",
+    title: "Medicamentos para tratamientos respiratorios",
+    description:
+      "Compra de inhaladores y antibióticos para 25 niños con diagnósticos respiratorios.",
+    beneficiaryId: "b1",
+    requiredAmount: 1000,
+    collectedAmount: 600,
+    urgency: "alta",
+    aiScore: 0.92,
+    status: "abierta",
+    createdAt: "2025-11-15T12:00:00Z",
+  },
+  {
+    id: "n2",
+    title: "Reparación de equipo de fisioterapia",
+    description:
+      "Reparación de equipo de ultrasonido utilizado en terapias de rehabilitación.",
+    beneficiaryId: "b2",
+    requiredAmount: 800,
+    collectedAmount: 800,
+    urgency: "media",
+    aiScore: 0.74,
+    status: "financiada",
+    createdAt: "2025-11-10T09:30:00Z",
+  },
+  {
+    id: "n3",
+    title: "Alimentos para canasta familiar",
+    description: "Canastas básicas para 40 familias desplazadas por lluvias.",
+    beneficiaryId: "b1",
+    requiredAmount: 1200,
+    collectedAmount: 300,
+    urgency: "alta",
+    aiScore: 0.88,
+    status: "abierta",
+    createdAt: "2025-11-12T14:20:00Z",
+  },
+];
+
+export const transactions: Transaction[] = [
+  {
+    id: "t1",
+    type: "donacion",
+    beneficiaryId: "b1",
+    needId: "n1",
+    amount: 200,
+    currency: "USD",
+    direction: "in",
+    description: "Donación inicial para medicamentos",
+    createdAt: "2025-11-16T16:30:00Z",
+  },
+  {
+    id: "t2",
+    type: "donacion",
+    beneficiaryId: "b2",
+    needId: "n2",
+    amount: 800,
+    currency: "USD",
+    direction: "in",
+    description: "Financiamiento completo de equipo",
+    createdAt: "2025-11-11T10:15:00Z",
+  },
+  {
+    id: "t3",
+    type: "gasto",
+    beneficiaryId: "b2",
+    needId: "n2",
+    amount: 800,
+    currency: "USD",
+    direction: "out",
+    description: "Pago de reparación de equipo de fisioterapia",
+    createdAt: "2025-11-13T09:00:00Z",
+  },
+  {
+    id: "t4",
+    type: "donacion",
+    beneficiaryId: "b1",
+    needId: "n3",
+    amount: 300,
+    currency: "USD",
+    direction: "in",
+    description: "Donación para canastas familiares",
+    createdAt: "2025-11-17T18:45:00Z",
+  },
+];
