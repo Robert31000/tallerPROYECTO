@@ -5,6 +5,7 @@ import LoginPage from "./view/login/LoginPage";
 import PanelIA from "./view/dashboard/PanelIA";
 import DashboardShell from "./view/dashboard/DashboardShell";
 import DonacionesDashboard from "./view/dashboard/DonacionesDashboard";
+import UsersRolesPage from "./view/dashboard/UserRolesPage";
 
 const router = createBrowserRouter([
   {
@@ -24,13 +25,21 @@ const router = createBrowserRouter([
     ),
   },
   {
-  path: "/dashboard/donaciones",
-  element: (
-    <DashboardShell>
-      <DonacionesDashboard />
-    </DashboardShell>
-  ),
-},
+    path: "/dashboard/donaciones",
+    element: (
+      <DashboardShell>
+        <DonacionesDashboard />
+      </DashboardShell>
+    ),
+  },
+  {
+    path: "/dashboard/usuarios-roles", // 👈 ruta para CU01
+    element: (
+      <DashboardShell>
+        <UsersRolesPage />
+      </DashboardShell>
+    ),
+  },
 ]);
 
 export default router;
