@@ -10,6 +10,7 @@ import NuevaSolicitudPage from "./view/solicitudes/NuevaSolicitudPage";
 import RevisarSolicitudesPage from "./view/dashboard/RevisarSolicitudesPage";
 import VerPublicacionesPage from "./view/dashboard/VerPublicacionesPage";
 import InventarioPage from "./view/dashboard/InventarioPage";
+import EventosSolidariosPage from "./view/dashboard/EventosSolidariosPage";
 
 const router = createBrowserRouter([
   {
@@ -76,6 +77,15 @@ const router = createBrowserRouter([
     element: (
       <DashboardShell>
         <InventarioPage />
+      </DashboardShell>
+    ),
+  },
+
+  {
+    path: "/dashboard/eventos",
+    element: (
+      <DashboardShell>
+        <EventosSolidariosPage />
       </DashboardShell>
     ),
   },
