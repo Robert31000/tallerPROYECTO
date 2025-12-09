@@ -6,6 +6,9 @@ import PanelIA from "./view/dashboard/PanelIA";
 import DashboardShell from "./view/dashboard/DashboardShell";
 import DonacionesDashboard from "./view/dashboard/DonacionesDashboard";
 import UsersRolesPage from "./view/dashboard/UserRolesPage";
+import NuevaSolicitudPage from "./view/solicitudes/NuevaSolicitudPage";
+import RevisarSolicitudesPage from "./view/dashboard/RevisarSolicitudesPage";
+import VerPublicacionesPage from "./view/dashboard/VerPublicacionesPage";
 
 const router = createBrowserRouter([
   {
@@ -37,6 +40,32 @@ const router = createBrowserRouter([
     element: (
       <DashboardShell>
         <UsersRolesPage />
+      </DashboardShell>
+    ),
+  },
+  {
+    path: "/dashboard/solicitudes/nueva",
+    element: (
+      <DashboardShell>
+        <NuevaSolicitudPage />
+      </DashboardShell>
+    ),
+  },
+
+  {
+    path: "/dashboard/solicitudes/revisar",
+    element: (
+      <DashboardShell>
+        <RevisarSolicitudesPage />
+      </DashboardShell>
+    ),
+  },
+
+  {
+    path: "/dashboard/publicaciones-donaciones",
+    element: (
+      <DashboardShell>
+        <VerPublicacionesPage />
       </DashboardShell>
     ),
   },
