@@ -1,195 +1,296 @@
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, Briefcase, GraduationCap } from "lucide-react";
-import heroUrl from "@/assets/2.jpg";
-
-const LOGIN_PATH = "/auth/login";
 
 export default function Home() {
   return (
-    <div className="min-h-screen ">
-      {/* HEADER */}
-      <header className="sticky top-0 z-30 backdrop-blur-md">
-        <div className="max-w-full mx-auto px-6 py-4 bg-[var(--color-primary-content)] flex items-center justify-between">
+    <div className="min-h-screen bg-white text-blue-500">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
+        {/* NAVBAR */}
+        <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-[var(--color-blue)] text-white rounded-xl w-11 h-11 grid place-items-center font-bold shadow-[var(--color-primary-content)]">
-              Sd
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-400/40 bg-white text-sm font-bold text-red-400">
+              U
             </div>
             <div>
-              <h1 className="font-bold sm:text-3xl text-[var(--color-blue)]">
-                UAGRM – Sistema de Donaciones
-              </h1>
-              <p className="text-xs text-[var(--color-violet)] font-medium">
-                Priorización y trazabilidad solidaria
+              <p className="text-sm font-semibold tracking-tight">
+                UAGRM Donaciones
+              </p>
+              <p className="text-xs text-slate-400">
+                Sistema inteligente de gestión solidaria
               </p>
             </div>
           </div>
-          <Link
-            to={LOGIN_PATH}
-            className="px-4 py-2.5 bg-[var(--color-blue)] text-white rounded-lg font-medium shadow-lg shadow-violet-500/30 transition-all duration-300 hover:scale-105"
-          >
-            Iniciar sesión
-          </Link>
-        </div>
-      </header>
 
-      {/* HERO */}
-      <section className="relative h-[60vh] min-h-[420px] sm:h-[70vh] md:h-[75vh] md:min-h-[600px] overflow-hidden bg-[var(--color-base-200)]">
-        <img
-          src={heroUrl}
-          alt="UAGRM — comunidad solidaria"
-          className="absolute inset-0 w-full h-full object-cover object-center brightness-40"
-        />
-        <div className="absolute inset-0" />
+          <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
+            <a href="#como-funciona" className="text-black">
+              Cómo funciona
+            </a>
+            <a href="#areas" className="text-black">
+              Áreas de apoyo
+            </a>
+            <a href="#impacto" className="text-black">
+              Impacto
+            </a>
+          </nav>
 
-        <div className="relative max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center">
-          <div className="w-full max-w-xl sm:max-w-2xl">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight sm:leading-[1.15] text-[var(--color-green)] mb-4 sm:mb-6">
-              Conecta la{" "}
-              <span className="bg-gradient-to-r bg-clip-text text-[var(--color-violet)]">
-                ayuda
-              </span>{" "}
-              con quienes más la necesitan
+          <div className="flex items-center gap-3">
+            <button className="hidden rounded-full border border-slate-700 px-4 py-1.5 text-xs font-medium text-slate-200 transition hover:border-emerald-500 hover:text-emerald-300 sm:inline-flex">
+              <Link to={'/auth/login'}>Ingresar</Link>
+            </button>
+            <button className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400">
+              Quiero donar
+            </button>
+          </div>
+        </header>
+
+        {/* CONTENIDO PRINCIPAL */}
+        <main className="mt-10 flex-1 space-y-16">
+          {/* HERO */}
+          <section className="grid items-center gap-10 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            {/* Texto */}
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-slate-700">
+                Nuevo · Plataforma piloto para la UAGRM
+              </span>
+
+              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                Gestiona las donaciones de la UAGRM
+                <span className="block text-red-500">
+                  con transparencia e impacto real.
+                </span>
+              </h1>
+
+              <p className="max-w-xl text-sm text-slate-700 md:text-base">
+                Centraliza las donaciones de personas, empresas y organizaciones.
+                Registra necesidades, asigna recursos y haz seguimiento al impacto
+                en estudiantes, proyectos de investigación y acción social dentro
+                de la universidad.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <button className="inline-flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-md shadow-emerald-500/30 transition hover:bg-emerald-400">
+                  Crear campaña de donación
+                </button>
+                <button className="inline-flex items-center rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-emerald-500 hover:text-emerald-300">
+                  Ver necesidades urgentes
+                </button>
+              </div>
+
+              <div className="grid max-w-md grid-cols-3 gap-4 text-xs text-slate-300">
+                <div>
+                  <p className="text-lg font-semibold text-emerald-400">+120</p>
+                  <p>Estudiantes beneficiados</p>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-emerald-400">18</p>
+                  <p>Campañas activas</p>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-emerald-400">4</p>
+                  <p>Facultades conectadas</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tarjeta / Dashboard falso */}
+            <div className="relative">
+              <div
+                className="absolute inset-0 rounded-3xl bg-emerald-500/20 blur-3xl"
+                aria-hidden
+              />
+              <div className="relative overflow-hidden rounded-3xl border border-red-700 p-5 shadow-2xl">
+                <p className="mb-3 text-xs font-medium text-slate-400">
+                  Vista previa del panel
+                </p>
+
+                {/* Totales */}
+                <div className="mb-4 grid grid-cols-3 gap-3 text-xs">
+                  <div className="rounded-xl  px-3 py-3">
+                    <p className="text-[0.7rem] text-slate-400">
+                      Monto recaudado
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-400">
+                      Bs. 34,250
+                    </p>
+                  </div>
+                  <div className="rounded-xl px-3 py-3">
+                    <p className="text-[0.7rem] text-slate-400">
+                      Donaciones hoy
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-400">
+                      23
+                    </p>
+                  </div>
+                  <div className="rounded-xl  px-3 py-3">
+                    <p className="text-[0.7rem] text-slate-400">
+                      Necesidades cubiertas
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-400">
+                      78%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lista de campañas */}
+                <div className="space-y-3">
+                  {[
+                    {
+                      nombre: "Becas de alimentación",
+                      progreso: 72,
+                      facultad: "Bienestar Estudiantil",
+                    },
+                    {
+                      nombre: "Equipamiento laboratorio",
+                      progreso: 45,
+                      facultad: "Ingeniería",
+                    },
+                    {
+                      nombre: "Fondo emergencia",
+                      progreso: 88,
+                      facultad: "Comunidad UAGRM",
+                    },
+                  ].map((campa, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl  px-3 py-3 text-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-black">
+                            {campa.nombre}
+                          </p>
+                          <p className="text-[0.7rem] text-black">
+                            {campa.facultad}
+                          </p>
+                        </div>
+                        <span className="text-[0.7rem] font-semibold text-black">
+                          {campa.progreso}%
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full">
+                        <div
+                          className="h-full rounded-full bg-emerald-500"
+                          style={{ width: `${campa.progreso}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[0.7rem] text-slate-500">
+                  Todo el flujo de donaciones, beneficiarios y reportes en un
+                  solo lugar.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* CÓMO FUNCIONA */}
+          <section id="como-funciona" className="space-y-6">
+            <h2 className="text-lg font-semibold tracking-tight">
+              ¿Cómo funciona la plataforma?
             </h2>
-
-            <p className="text-base sm:text-lg text-[var(--color-base-150)] leading-relaxed mb-6 sm:mb-8 max-w-md sm:max-w-xl">
-              Registra solicitudes de donación, priorízalas con inteligencia
-              artificial y sigue la trazabilidad completa de cada aporte
-              solidario dentro de la UAGRM.
-            </p>
-
-            {/* STATS */}
-            <div className="mt-8 sm:mt-12 flex flex-wrap gap-6 sm:gap-8">
-              <div className="min-w-[120px]">
-                <div className="text-2xl sm:text-3xl font-bold text-[var(--color-blue)]">
-                  50+
-                </div>
-                <div className="text-xs sm:text-sm text-[var(--color-base-200)]">
-                  Campañas solidarias
-                </div>
+            <div className="grid gap-4 text-sm md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                <p className="text-xs font-semibold text-emerald-400">
+                  1 · Registrar necesidades
+                </p>
+                <p className="mt-2 text-slate-200">
+                  Las unidades, centros y carreras registran sus necesidades:
+                  becas, equipamiento, proyectos sociales, etc.
+                </p>
               </div>
-              <div className="min-w-[120px]">
-                <div className="text-2xl sm:text-3xl font-bold text-[var(--color-blue)]">
-                  1.000+
-                </div>
-                <div className="text-xs sm:text-sm text-[var(--color-base-200)]">
-                  Beneficiarios atendidos
-                </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                <p className="text-xs font-semibold text-emerald-400">
+                  2 · Recibir donaciones
+                </p>
+                <p className="mt-2 text-slate-200">
+                  Personas y empresas se conectan con campañas claras,
+                  transparentes y verificadas por la UAGRM.
+                </p>
               </div>
-              <div className="min-w-[120px]">
-                <div className="text-2xl sm:text-3xl font-bold text-[var(--color-blue)]">
-                  IA
-                </div>
-                <div className="text-xs sm:text-sm text-[var(--color-base-200)]">
-                  Priorización con LightGBM
-                </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                <p className="text-xs font-semibold text-emerald-400">
+                  3 · Monitorear el impacto
+                </p>
+                <p className="mt-2 text-slate-200">
+                  El sistema registra entregas, beneficiarios y reportes para
+                  que la comunidad vea el impacto real de cada donación.
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* FEATURES */}
-      <section id="features" className="max-w-7xl mx-auto px-6 py-20">
-        <div className="text-center mb-16">
-          <h3 className="text-4xl font-bold text-[var(--color-blue)] mb-4">
-            Gestión integral de donaciones
-          </h3>
-          <p className="text-lg text-[var(--color-violet)] max-w-2xl mx-auto">
-            Un sistema diseñado para registrar solicitudes, priorizarlas con IA
-            y garantizar transparencia en cada campaña solidaria.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Solicitudes y beneficiarios */}
-          <div className="group bg-white hover:bg-gradient-to-br hover:from-violet-50 hover:to-purple-50 border-2 border-violet-100 hover:border-violet-300 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-            <div className="w-14 h-14 bg-gradient-to-br bg-[var(--color-violet)] rounded-xl grid place-items-center mb-6 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform">
-              <Users className="w-7 h-7 text-white" />
+          {/* ÁREAS DE APOYO */}
+          <section id="areas" className="space-y-6">
+            <h2 className="text-lg font-semibold tracking-tight">
+              Áreas de apoyo dentro de la UAGRM
+            </h2>
+            <div className="grid gap-4 text-sm md:grid-cols-4">
+              <div className="rounded-2xl border  p-4">
+                <p className="font-medium text-slate-100">Estudiantes</p>
+                <p className="mt-1 text-xs text-black">
+                  Becas de alimentación, transporte, materiales, salud, etc.
+                </p>
+              </div>
+              <div className="rounded-2xl border  p-4">
+                <p className="font-medium text-black">
+                  Investigación y laboratorios
+                </p>
+                <p className="mt-1 text-xs text-black">
+                  Equipos, software y recursos para proyectos científicos.
+                </p>
+              </div>
+              <div className="rounded-2xl border  p-4">
+                <p className="font-medium text-black">Acción social</p>
+                <p className="mt-1 text-xs text-black">
+                  Proyectos que conectan a la UAGRM con la comunidad.
+                </p>
+              </div>
+              <div className="rounded-2xl border  p-4">
+                <p className="font-medium text-black">Infraestructura</p>
+                <p className="mt-1 text-xs text-black">
+                  Mejoras en aulas, bibliotecas y espacios comunes.
+                </p>
+              </div>
             </div>
-            <h4 className="text-xl font-bold text-[var(--color-green)] mb-3">
-              Solicitudes y beneficiarios
-            </h4>
-            <p className="text-[var(--color-info-content)] leading-relaxed">
-              Registra solicitudes de apoyo, organiza beneficiarios y centraliza
-              toda la información en un historial único y trazable.
-            </p>
-          </div>
+          </section>
 
-          {/* Campañas y fondos */}
-          <div className="group bg-white hover:bg-gradient-to-br hover:from-violet-50 hover:to-purple-50 border-2 border-violet-100 hover:border-violet-300 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-            <div className="w-14 h-14 bg-gradient-to-br bg-[var(--color-violet)] rounded-xl grid place-items-center mb-6 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform">
-              <Briefcase className="w-7 h-7 text-white" />
-            </div>
-            <h4 className="text-xl font-bold text-[var(--color-green)] mb-3">
-              Campañas y fondos solidarios
-            </h4>
-            <p className="text-[var(--color-info-content)] leading-relaxed">
-              Administra campañas, registra movimientos de fondos y visualiza
-              cómo se distribuyen los recursos en tiempo real.
-            </p>
-          </div>
-
-          {/* IA y transparencia */}
-          <div className="group bg-white hover:bg-gradient-to-br hover:from-violet-50 hover:to-purple-50 border-2 border-violet-100 hover:border-violet-300 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-            <div className="w-14 h-14 bg-gradient-to-br bg-[var(--color-violet)] rounded-xl grid place-items-center mb-6 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform">
-              <GraduationCap className="w-7 h-7 text-white" />
-            </div>
-            <h4 className="text-xl font-bold text-[var(--color-green)] mb-3">
-              IA y portal de transparencia
-            </h4>
-            <p className="text-[var(--color-info-content)] leading-relaxed">
-              Prioriza casos con LightGBM y permite a la comunidad consultar la
-              trazabilidad de cada donación y entrega realizada.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-7xl mx-auto px-6 py-16 mb-20">
-        <div className="bg-gradient-to-r bg-[var(--color-green)] rounded-3xl p-12 shadow-2xl shadow-violet-500/30 text-center">
-          <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            ¿Listo para gestionar las donaciones de forma inteligente?
-          </h3>
-          <p className="text-violet-100 text-lg mb-8 max-w-2xl mx-auto">
-            Ingresa al sistema, registra solicitudes y deja que la inteligencia
-            artificial te ayude a priorizar y distribuir mejor la ayuda
-            solidaria.
-          </p>
-          <Link
-            to={LOGIN_PATH}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-violet-50 text-[var(--color-violet)] rounded-xl font-semibold shadow-xl transition-all duration-300 hover:scale-105"
+          {/* IMPACTO / CTA FINAL */}
+          <section
+            id="impacto"
+            className="overflow-hidden rounded-3xl border  via-slate-900 to-slate-950 px-5 py-6 md:px-8"
           >
-            Ir al sistema de donaciones
-            <ChevronRight className="w-5 h-5" />
-          </Link>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-white bg-[var(--color-primary-content)] backdrop-blur-sm">
-        <div className="max-w-full mx-auto px-6 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br bg-[var(--color-blue)] text-white rounded-xl w-10 h-10 grid place-items-center font-bold shadow-lg shadow-violet-500/20">
-                Sd
-              </div>
+            <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
               <div>
-                <div className="font-bold text-[var(--color-info-content)]">
-                  UAGRM – Sistema de Donaciones
-                </div>
-                <div className="text-sm text-[var(--color-info-content)]">
-                  Priorización y trazabilidad solidaria
-                </div>
+                <h2 className="text-lg font-semibold tracking-tight text-black">
+                  Construyamos juntos una UAGRM más solidaria.
+                </h2>
+                <p className="mt-2 max-w-xl text-sm text-black">
+                  Esta plataforma está pensada para transparentar el uso de los
+                  recursos y facilitar la conexión entre quienes quieren ayudar
+                  y quienes más lo necesitan dentro de la universidad.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-md shadow-emerald-500/30 transition hover:bg-emerald-400">
+                  Registrarme como donante
+                </button>
+                <button className="rounded-lg border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-slate-950/70">
+                  Registrar necesidad en mi unidad
+                </button>
               </div>
             </div>
-            <div className="text-sm text-center text-[var(--color-info-content)]">
-              © {new Date().getFullYear()} Universidad Autónoma Gabriel René
-              Moreno. Todos los derechos reservados.
-            </div>
-          </div>
-        </div>
-      </footer>
+          </section>
+        </main>
+
+        {/* FOOTER */}
+        <footer className="mt-10 border-t border-slate-800 pt-5 text-xs text-black md:flex md(items-center) md:justify-between">
+          <p>
+            © {new Date().getFullYear()} Sistema de Gestión de Donaciones — UAGRM.
+          </p>
+          <p>Desarrollado por estudiantes de Ingeniería de Sistemas.</p>
+        </footer>
+      </div>
     </div>
   );
 }
