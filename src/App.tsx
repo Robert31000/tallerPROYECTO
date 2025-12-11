@@ -11,6 +11,9 @@ import RevisarSolicitudesPage from "./view/dashboard/RevisarSolicitudesPage";
 import VerPublicacionesPage from "./view/dashboard/VerPublicacionesPage";
 import InventarioPage from "./view/dashboard/InventarioPage";
 import EventosSolidariosPage from "./view/dashboard/EventosSolidariosPage";
+import DashboardDonante from "./view/Donante/DashboardDonante";
+import DonarPage from "./view/Donante/Donar";
+import DonacionExitosaPage from "./view/Donante/DonacionExitosaPage";
 
 const router = createBrowserRouter([
   {
@@ -30,6 +33,12 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/dashboard-donante",
+    element: (
+        <DashboardDonante />
+    ),
+  },
+  {
     path: "/dashboard/donaciones",
     element: (
       <DashboardShell>
@@ -37,6 +46,14 @@ const router = createBrowserRouter([
       </DashboardShell>
     ),
   },
+  {
+  path: "/dashboard-donante/donar/:id",
+  element: <DonarPage />,
+},
+  {
+  path: "/dashboard-donante/donar/:id/exito",
+  element: <DonacionExitosaPage />,
+},
   {
     path: "/dashboard/usuarios-roles", // 👈 ruta para CU01
     element: (
