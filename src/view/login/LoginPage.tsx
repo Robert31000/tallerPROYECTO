@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { isAxiosError } from "axios";
-import { api } from "../../lib/api";
+import { login } from "../../lib/api";
 // Cambiar luego por el logo oficial del sistema de donaciones
 import logoUrl from "@/icons/logo-sociologia.svg";
 
@@ -12,11 +12,6 @@ type FormState = {
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
-
-type LoginResponse = {
-  token: string;
-  user?: unknown;
-};
 
 function extractErrorMessage(err: unknown): string {
   if (isAxiosError(err)) {
@@ -64,12 +59,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
 
-      const res = await api.post<LoginResponse>("/auth/login", {
-        email: form.email,
-        password: form.password,
-      });
-
-      const { token, user } = res.data;
+      const { token, user } = await login(form.email, form.password);
       if (!token || typeof token !== "string") {
         throw new Error("Respuesta inválida del servidor");
       }

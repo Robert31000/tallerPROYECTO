@@ -1,146 +1,99 @@
+// src/view/dashboard/NuevaSolicitudPage.tsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { registrarSolicitud } from "../../lib/api";
 
-import { api } from "../../lib/api";
-// import DashboardShell from "../dashboard/DashboardShell";
+import type { RegistrarSolicitudInput } from "../../lib/api";
 
-type NuevaSolicitudForm = {
-  tipoDonativo: string;
-  categoria: string;
+type FormState = {
   titulo: string;
   descripcion: string;
+  tipoRecurso: string;
+  categoria: string;
   urgencia: "BAJA" | "MEDIA" | "ALTA";
   beneficiarioNombre: string;
-  beneficiarioDescripcion: string;
-  montoEstimado: string;
+  beneficiarioTipo: string;
+  beneficiarioContacto: string;
   fechaLimite: string;
-  ubicacion: string;
-  contactoTelefono: string;
-  contactoEmail: string;
-  aceptaTerminos: boolean;
+  imagenes: File[];
 };
 
-type EvidenciaPreview = {
-  file: File;
-  url: string;
+const initialState: FormState = {
+  titulo: "",
+  descripcion: "",
+  tipoRecurso: "",
+  categoria: "",
+  urgencia: "MEDIA",
+  beneficiarioNombre: "",
+  beneficiarioTipo: "",
+  beneficiarioContacto: "",
+  fechaLimite: "",
+  imagenes: [],
 };
 
 export default function NuevaSolicitudPage() {
-  const [form, setForm] = useState<NuevaSolicitudForm>({
-    tipoDonativo: "",
-    categoria: "",
-    titulo: "",
-    descripcion: "",
-    urgencia: "MEDIA",
-    beneficiarioNombre: "",
-    beneficiarioDescripcion: "",
-    montoEstimado: "",
-    fechaLimite: "",
-    ubicacion: "",
-    contactoTelefono: "",
-    contactoEmail: "",
-    aceptaTerminos: false,
-  });
-
-  // 👇 Evidencias solo imágenes (CU4)
-  const [evidencias, setEvidencias] = useState<EvidenciaPreview[]>([]);
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   function handleChange(
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >,
   ) {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
   }
 
-  // Manejo de archivos SOLO imágenes
   function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
-    const arr: EvidenciaPreview[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!f.type.startsWith("image/")) {
-        // ignoramos lo que no sea imagen
-        continue;
-      }
-      arr.push({
-        file: f,
-        url: URL.createObjectURL(f),
-      });
+    // solo imágenes
+    const validFiles: File[] = [];
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith("image/")) validFiles.push(file);
     }
 
-    setEvidencias(arr);
+    setForm((f) => ({ ...f, imagenes: validFiles }));
   }
 
-  async function handleSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
-    setServerError(null);
-    setSuccessMsg(null);
-
-    if (!form.aceptaTerminos) {
-      setServerError("Debe aceptar los términos y condiciones.");
-      return;
-    }
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    setError(null);
 
     try {
       setIsSubmitting(true);
+      const token =
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token") ||
+        undefined;
 
-      // 👇 Enviamos todo como multipart/form-data
-      const fd = new FormData();
-      fd.append("tipoDonativo", form.tipoDonativo);
-      fd.append("categoria", form.categoria);
-      fd.append("titulo", form.titulo);
-      fd.append("descripcion", form.descripcion);
-      fd.append("urgencia", form.urgencia);
-      fd.append("beneficiarioNombre", form.beneficiarioNombre);
-      fd.append("beneficiarioDescripcion", form.beneficiarioDescripcion);
-      fd.append("montoEstimado", form.montoEstimado);
-      fd.append("fechaLimite", form.fechaLimite);
-      fd.append("ubicacion", form.ubicacion);
-      fd.append("contactoTelefono", form.contactoTelefono);
-      fd.append("contactoEmail", form.contactoEmail);
+      const payload: RegistrarSolicitudInput = {
+        titulo: form.titulo,
+        descripcion: form.descripcion,
+        tipoRecurso: form.tipoRecurso,
+        categoria: form.categoria,
+        urgencia: form.urgencia,
+        beneficiarioNombre: form.beneficiarioNombre,
+        beneficiarioTipo: form.beneficiarioTipo,
+        beneficiarioContacto: form.beneficiarioContacto,
+        fechaLimite: form.fechaLimite || undefined,
+        imagenes: form.imagenes,
+      };
 
-      // Adjuntamos imágenes (CU4)
-      evidencias.forEach((evd, idx) => {
-        fd.append(
-          "evidencias",
-          evd.file,
-          evd.file.name || `evidencia-${idx}.jpg`,
-        );
-      });
+      await registrarSolicitud(payload, token);
+      setMessage("La solicitud se registró correctamente.");
+      setForm(initialState);
 
-      await api.post("/solicitudes", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setSuccessMsg("Solicitud registrada correctamente.");
-      // Limpiar formulario
-      setForm((prev) => ({
-        ...prev,
-        titulo: "",
-        descripcion: "",
-        beneficiarioNombre: "",
-        beneficiarioDescripcion: "",
-        montoEstimado: "",
-        fechaLimite: "",
-        ubicacion: "",
-        contactoTelefono: "",
-        contactoEmail: "",
-      }));
-      setEvidencias([]);
-    } catch (err: any) {
+      // si quieres devolver al listado:
+      // navigate("/dashboard/solicitudes/revisar");
+    } catch (err) {
       console.error(err);
-      setServerError(
-        err?.response?.data?.message || "No se pudo registrar la solicitud.",
-      );
+      setError("No se pudo registrar la solicitud. Intente nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,119 +103,79 @@ export default function NuevaSolicitudPage() {
     <div className="max-w-4xl mx-auto">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Registrar solicitud de donación
+          Nueva solicitud de donación
         </h1>
         <p className="text-sm text-slate-500">
-          Completa los datos de la solicitud y adjunta evidencias en formato de
-          imagen (fotos, capturas, etc.).
+          Registra una nueva solicitud y adjunta evidencias (solo imágenes).
         </p>
       </header>
 
+      {message && (
+        <div className="mb-4 rounded-md bg-emerald-50 border border-emerald-300 px-4 py-3 text-sm text-emerald-800">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-300 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
+
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6"
+        className="space-y-4 bg-white rounded-xl shadow-sm p-6"
       >
-        {serverError && (
-          <div className="p-3 rounded-md bg-red-50 text-sm text-red-700">
-            {serverError}
-          </div>
-        )}
-        {successMsg && (
-          <div className="p-3 rounded-md bg-emerald-50 text-sm text-emerald-700">
-            {successMsg}
-          </div>
-        )}
-
         {/* Datos básicos */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Tipo de donativo
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Título de la solicitud *
             </label>
-            <select
-              name="tipoDonativo"
-              value={form.tipoDonativo}
+            <input
+              name="titulo"
+              value={form.titulo}
               onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
               required
-            >
-              <option value="">Seleccionar…</option>
-              <option value="ALIMENTOS">Alimentos</option>
-              <option value="ROPA">Ropa</option>
-              <option value="MATERIAL_EDUCATIVO">Material educativo</option>
-              <option value="ECONOMICO">Apoyo económico</option>
-              <option value="OTRO">Otro</option>
-            </select>
+            />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Categoría / campaña
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Tipo de recurso *
             </label>
             <input
-              type="text"
+              name="tipoRecurso"
+              placeholder="Alimentos, útiles escolares, ropa..."
+              value={form.tipoRecurso}
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Categoría
+            </label>
+            <input
               name="categoria"
+              placeholder="Emergencia, apoyo académico, salud..."
               value={form.categoria}
               onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="Campaña Samaipata, Apoyo a becarios, etc."
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="text-xs font-semibold text-slate-700 block mb-1">
-            Título de la solicitud
-          </label>
-          <input
-            type="text"
-            name="titulo"
-            value={form.titulo}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-            placeholder="Ej. Apoyo alimentario para familia afectada"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-slate-700 block mb-1">
-            Descripción detallada
-          </label>
-          <textarea
-            name="descripcion"
-            value={form.descripcion}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm min-h-[90px]"
-            placeholder="Explique la situación, necesidades y contexto de la solicitud…"
-            required
-          />
-        </div>
-
-        {/* Beneficiario + urgencia */}
-        <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Nombre / grupo beneficiario
-            </label>
-            <input
-              type="text"
-              name="beneficiarioNombre"
-              value={form.beneficiarioNombre}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="Ej. Familia Pérez, Comunidad Samaipata…"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Nivel de urgencia
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Urgencia *
             </label>
             <select
               name="urgencia"
               value={form.urgencia}
               onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
             >
               <option value="BAJA">Baja</option>
               <option value="MEDIA">Media</option>
@@ -271,160 +184,111 @@ export default function NuevaSolicitudPage() {
           </div>
         </div>
 
+        {/* Descripción */}
         <div>
-          <label className="text-xs font-semibold text-slate-700 block mb-1">
-            Situación del beneficiario
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Descripción detallada *
           </label>
           <textarea
-            name="beneficiarioDescripcion"
-            value={form.beneficiarioDescripcion}
+            name="descripcion"
+            value={form.descripcion}
             onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm min-h-[70px]"
-            placeholder="Explique brevemente el contexto de vulnerabilidad, número de personas, etc."
+            rows={4}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            required
           />
         </div>
 
-        {/* Monto, fecha, ubicación */}
+        {/* Beneficiario */}
         <div className="grid md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Monto estimado (opcional)
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Beneficiario *
             </label>
             <input
-              type="number"
-              min={0}
-              name="montoEstimado"
-              value={form.montoEstimado}
+              name="beneficiarioNombre"
+              value={form.beneficiarioNombre}
               onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="Ej. 500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              required
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Fecha límite sugerida
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Tipo de beneficiario
+            </label>
+            <input
+              name="beneficiarioTipo"
+              placeholder="Estudiante, docente, colectivo..."
+              value={form.beneficiarioTipo}
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Contacto
+            </label>
+            <input
+              name="beneficiarioContacto"
+              placeholder="Correo o teléfono"
+              value={form.beneficiarioContacto}
+              onChange={handleChange}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Fecha límite */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Fecha límite (opcional)
             </label>
             <input
               type="date"
               name="fechaLimite"
               value={form.fechaLimite}
               onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Ubicación / zona
-            </label>
-            <input
-              type="text"
-              name="ubicacion"
-              value={form.ubicacion}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="Campus, barrio, municipio…"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
         </div>
 
-        {/* Contacto */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Teléfono de contacto
-            </label>
-            <input
-              type="tel"
-              name="contactoTelefono"
-              value={form.contactoTelefono}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="Ej. 75600000"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Correo de contacto
-            </label>
-            <input
-              type="email"
-              name="contactoEmail"
-              value={form.contactoEmail}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              placeholder="ejemplo@uagrm.edu.bo"
-            />
-          </div>
-        </div>
-
-        {/* CU4: Evidencias (solo imágenes) */}
-        <div className="border-t border-slate-200 pt-4">
-          <h2 className="text-sm font-semibold text-slate-800 mb-2">
-            Adjuntar evidencias (imágenes)
-          </h2>
-          <p className="text-xs text-slate-500 mb-3">
-            Sube fotografías o capturas que respalden la solicitud (máx. 5
-            imágenes, JPG/PNG).
-          </p>
-
+        {/* Evidencias (CU4) */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Evidencias (imágenes) *
+          </label>
           <input
             type="file"
             accept="image/*"
             multiple
             onChange={handleFilesChange}
-            className="block w-full text-sm text-slate-600
-                         file:mr-3 file:py-2 file:px-4
-                         file:rounded-md file:border-0
-                         file:text-sm file:font-semibold
-                         file:bg-blue-50 file:text-blue-700
-                         hover:file:bg-blue-100"
+            className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-
-          {evidencias.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-              {evidencias.map((evd, idx) => (
-                <div
-                  key={idx}
-                  className="relative rounded-md overflow-hidden border border-slate-200 bg-slate-50"
-                >
-                  <img
-                    src={evd.url}
-                    alt={`Evidencia ${idx + 1}`}
-                    className="w-full h-28 object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Solo se permiten archivos de imagen (JPG, PNG, etc.).
+          </p>
+          {form.imagenes.length > 0 && (
+            <p className="mt-1 text-xs text-emerald-600">
+              {form.imagenes.length} archivo(s) seleccionados.
+            </p>
           )}
         </div>
 
-        {/* Términos */}
-        <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            name="aceptaTerminos"
-            checked={form.aceptaTerminos}
-            onChange={handleChange}
-            className="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-          <p className="text-xs text-slate-600">
-            Declaro que la información ingresada es verídica y autorizo el uso
-            de estos datos para la gestión interna de campañas solidarias en la
-            UAGRM.
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2">
+        <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
-            className="px-4 py-2 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+            className="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+            onClick={() => navigate(-1)}
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-5 py-2.5 text-sm font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 text-sm rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
             {isSubmitting ? "Guardando..." : "Registrar solicitud"}
           </button>

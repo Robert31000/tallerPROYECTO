@@ -72,10 +72,17 @@ export function ReceiveDonationModal({
 
     try {
       setSubmitting(true);
-      // 👉 Aquí luego llamarías a tu API: POST /inventario/recepciones
-      // await api.post("/inventario/recepciones", form);
-
       if (onCreate) onCreate(form);
+      setForm({
+        recurso: "",
+        tipo: "Víveres",
+        campania: defaultCampania,
+        cantidad: 0,
+        unidad: "unidades",
+        ubicacion: "Depósito central – Bloque UAGRM",
+        condicion: "NUEVO",
+        fechaRecepcion: new Date().toISOString().slice(0, 10),
+      });
       onClose();
     } finally {
       setSubmitting(false);

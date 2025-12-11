@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import { api } from "../../lib/api";
+import { registrarDonacion } from "../../lib/api";
+import type { RegistrarDonacionInput, TipoDonacion } from "../../lib/api";
 
 export type DonationType = "MONETARIA" | "EN_ESPECIE";
 
@@ -45,6 +46,10 @@ export function DonationModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showQRStep, setShowQRStep] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
 
   if (!open || !publicacion) return null;
 
@@ -77,26 +82,38 @@ export function DonationModal({
     setErrors(ve);
     if (Object.keys(ve).length) return;
 
+    // If monetary and transfer/deposit, move to QR confirmation step
+    if (
+      form.tipo === "MONETARIA" &&
+      (form.metodoEntrega === "TRANSFERENCIA" ||
+        form.metodoEntrega === "DEPOSITO")
+    ) {
+      const amount = Number(form.monto.replace(",", "."));
+      const svg = generateQrSvg(amount, publicacion!.id, publicacion!.codigo);
+      setQrDataUrl(svg);
+      setShowQRStep(true);
+      return;
+    }
+
     try {
       setSubmitting(true);
 
-      // payload típico para el backend (ajusta el endpoint luego)
-      const payload = {
-        publicacionId: publicacion?.id,
-        tipo: form.tipo,
+      // use central helper (will call local mock if enabled)
+      const donationPayload: RegistrarDonacionInput = {
+        publicacionId: publicacion!.id,
+        tipo: (form.tipo === "MONETARIA"
+          ? "DINERO"
+          : "ESPECIE") as TipoDonacion,
         monto:
           form.tipo === "MONETARIA"
             ? Number(form.monto.replace(",", "."))
-            : null,
-        descripcion:
-          form.tipo === "EN_ESPECIE"
-            ? form.descripcion.trim()
-            : form.descripcion.trim() || null,
-        metodoEntrega: form.metodoEntrega,
+            : undefined,
+        moneda: undefined,
+        descripcionBienes:
+          form.tipo === "EN_ESPECIE" ? form.descripcion.trim() : undefined,
+        donanteNombre: "Anon",
       };
-
-      // 👉 cuando tengas backend real, solo ajustas la ruta:
-      await api.post("/donaciones", payload);
+      await registrarDonacion(donationPayload);
 
       if (onSuccess) {
         onSuccess({
@@ -117,15 +134,84 @@ export function DonationModal({
         metodoEntrega: "TRANSFERENCIA",
       });
       onClose();
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ??
-        err?.message ??
-        "No se pudo registrar la donación";
-      setServerError(msg);
+    } catch (err: unknown) {
+      console.error(err);
+      setServerError("No se pudo registrar la donación");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function generateQrSvg(
+    amount: number,
+    publicacionId: number,
+    codigo: string,
+  ) {
+    const texto = `PAGO|PUB:${publicacionId}|COD:${codigo}|MON:${amount.toFixed(2)}`;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><rect width='100%' height='100%' fill='#fff'/><g font-family='Arial,Helvetica,sans-serif'><rect x='10' y='10' width='220' height='220' rx='12' fill='#0ea5e9'/><text x='50%' y='45%' text-anchor='middle' font-size='12' fill='#fff'>QR SIMULADO</text><text x='50%' y='55%' text-anchor='middle' font-size='10' fill='#fff'>${texto}</text></g></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  async function handleConfirmPayment() {
+    if (!publicacion) return;
+    setServerError(null);
+    setSubmitting(true);
+    try {
+      const donationPayload: RegistrarDonacionInput = {
+        publicacionId: publicacion.id,
+        tipo: (form.tipo === "MONETARIA"
+          ? "DINERO"
+          : "ESPECIE") as TipoDonacion,
+        monto:
+          form.tipo === "MONETARIA"
+            ? Number(form.monto.replace(",", "."))
+            : undefined,
+        moneda: undefined,
+        descripcionBienes:
+          form.tipo === "EN_ESPECIE" ? form.descripcion.trim() : undefined,
+        donanteNombre: "Anon",
+        comprobante: proofFile || undefined,
+      };
+
+      await registrarDonacion(donationPayload);
+
+      if (onSuccess) {
+        onSuccess({
+          tipo: form.tipo,
+          monto:
+            form.tipo === "MONETARIA"
+              ? Number(form.monto.replace(",", "."))
+              : null,
+          descripcion: form.descripcion.trim() || undefined,
+        });
+      }
+
+      // reset
+      setForm({
+        tipo: "MONETARIA",
+        monto: "",
+        descripcion: "",
+        metodoEntrega: "TRANSFERENCIA",
+      });
+      setShowQRStep(false);
+      setQrDataUrl(null);
+      setProofFile(null);
+      setProofPreview(null);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setServerError("No se pudo confirmar el pago");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleProofChange(f?: File) {
+    if (!f) return;
+    setProofFile(f);
+    const reader = new FileReader();
+    reader.onload = () => setProofPreview(String(reader.result));
+    reader.readAsDataURL(f);
   }
 
   return (
@@ -274,31 +360,102 @@ export function DonationModal({
             </div>
           )}
 
-          {/* Footer botones */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 mt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-2 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-              disabled={submitting}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-2 disabled:opacity-50"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Registrando…</span>
-                </>
-              ) : (
-                <span>Confirmar donación</span>
-              )}
-            </button>
-          </div>
+          {/* QR / Proof step */}
+          {showQRStep ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold">QR de pago (simulado)</p>
+                {qrDataUrl && (
+                  <div className="mt-2">
+                    <img
+                      src={qrDataUrl}
+                      alt="QR simulado"
+                      className="w-40 h-40 object-contain rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Subir comprobante del pago (imagen)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    handleProofChange(
+                      e.target.files ? e.target.files[0] : undefined,
+                    )
+                  }
+                />
+                {proofPreview && (
+                  <div className="mt-2">
+                    <img
+                      src={proofPreview}
+                      alt="Comprobante"
+                      className="w-32 h-20 object-cover rounded-md border"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowQRStep(false);
+                    setQrDataUrl(null);
+                  }}
+                  className="px-3 py-2 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  disabled={submitting}
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPayment}
+                  disabled={submitting}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Confirmando…</span>
+                    </>
+                  ) : (
+                    <span>Confirmar pago y registrar</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Footer botones */
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 mt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Registrando…</span>
+                  </>
+                ) : (
+                  <span>Confirmar donación</span>
+                )}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

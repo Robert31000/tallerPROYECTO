@@ -1,19 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { api } from "../../lib/api";
+import { useEffect, useState } from "react";
+import {
+  listarSolicitudes,
+  cambiarEstadoSolicitud,
+  obtenerSolicitud,
+} from "../../lib/api";
 import { Eye, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
 
 type SolicitudEstado = "PENDIENTE" | "APROBADA" | "RECHAZADA";
 
 type Solicitud = {
   id: number;
-  codigo: string;
   titulo: string;
-  tipoDonativo: string;
+  categoria: string;
+  tipoRecurso: string;
   urgencia: "BAJA" | "MEDIA" | "ALTA";
   beneficiarioNombre: string;
-  fechaCreacion: string; // ISO string
+  fechaCreacion: string; // ISO string que llega del backend
+  descripcion?: string;
+  evidencias?: string[];
   estado: SolicitudEstado;
-  // puedes añadir más campos según tu backend
 };
 
 type Accion = "APROBAR" | "RECHAZAR" | null;
@@ -29,21 +34,19 @@ export default function RevisarSolicitudesPage() {
   const [solicitudSeleccionada, setSolicitudSeleccionada] =
     useState<Solicitud | null>(null);
   const [comentario, setComentario] = useState("");
+  const [viewingDetail, setViewingDetail] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   async function cargarSolicitudes(estado: SolicitudEstado) {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get<Solicitud[]>("/solicitudes", {
-        params: { estado },
-      });
-      setSolicitudes(res.data);
-    } catch (err: any) {
+
+      const lista = await listarSolicitudes(estado);
+      setSolicitudes(lista as Solicitud[]);
+    } catch (err: unknown) {
       console.error(err);
-      setError(
-        err?.response?.data?.message ||
-          "No se pudieron cargar las solicitudes.",
-      );
+      setError("No se pudieron cargar las solicitudes.");
     } finally {
       setLoading(false);
     }
@@ -59,10 +62,40 @@ export default function RevisarSolicitudesPage() {
     setComentario("");
   }
 
+  async function abrirDetalle(s: Solicitud) {
+    setComentario("");
+    setAccionActual(null);
+    setDetailLoading(true);
+    try {
+      const full = await obtenerSolicitud(s.id);
+      const mapped: Solicitud = {
+        id: full.id,
+        titulo: full.titulo,
+        categoria: full.categoria || s.categoria,
+        tipoRecurso: (full.tipoRecurso as string) || s.tipoRecurso,
+        urgencia: full.urgencia,
+        beneficiarioNombre: full.beneficiarioNombre,
+        fechaCreacion:
+          full.fechaRegistro || full.fechaCreacion || s.fechaCreacion,
+        estado: full.estado,
+        descripcion: full.descripcion,
+        evidencias: full.evidencias || [],
+      };
+      setSolicitudSeleccionada(mapped);
+      setViewingDetail(true);
+    } catch (e) {
+      console.error(e);
+      setError("No se pudo cargar el detalle de la solicitud.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
   function cerrarModal() {
     setAccionActual(null);
     setSolicitudSeleccionada(null);
     setComentario("");
+    setViewingDetail(false);
   }
 
   async function confirmarAccion() {
@@ -72,21 +105,15 @@ export default function RevisarSolicitudesPage() {
       setLoading(true);
       const id = solicitudSeleccionada.id;
 
-      if (accionActual === "APROBAR") {
-        await api.post(`/solicitudes/${id}/aprobar`, { comentario });
-      } else if (accionActual === "RECHAZAR") {
-        await api.post(`/solicitudes/${id}/rechazar`, { comentario });
-      }
+      // Use helper que maneja PUT/POST según backend
+      const nuevoEstado = accionActual === "APROBAR" ? "APROBADA" : "RECHAZADA";
+      await cambiarEstadoSolicitud(id, nuevoEstado, comentario || undefined);
 
-      // recargar lista en el estado actual
       await cargarSolicitudes(estadoFiltro);
       cerrarModal();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(
-        err?.response?.data?.message ||
-          "Ocurrió un error al actualizar la solicitud.",
-      );
+      setError("Ocurrió un error al actualizar la solicitud.");
     } finally {
       setLoading(false);
     }
@@ -102,7 +129,7 @@ export default function RevisarSolicitudesPage() {
           </h1>
           <p className="text-sm text-slate-500">
             Valida la información enviada por estudiantes, docentes y colectivos
-            antes de publicarla en el catálogo institucional.
+            antes de publicarla o rechazarla.
           </p>
         </div>
       </div>
@@ -145,13 +172,13 @@ export default function RevisarSolicitudesPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">
-                  Código
+                  ID
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">
                   Título
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">
-                  Tipo
+                  Tipo recurso
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-500">
                   Beneficiario
@@ -200,13 +227,13 @@ export default function RevisarSolicitudesPage() {
                     className="border-b border-slate-100 hover:bg-slate-50/60"
                   >
                     <td className="px-4 py-2 text-xs font-mono text-slate-500">
-                      {s.codigo}
+                      {s.id}
                     </td>
                     <td className="px-4 py-2 text-slate-900 font-medium">
                       {s.titulo}
                     </td>
                     <td className="px-4 py-2 text-slate-600">
-                      {s.tipoDonativo}
+                      {s.tipoRecurso}
                     </td>
                     <td className="px-4 py-2 text-slate-600">
                       {s.beneficiarioNombre || "-"}
@@ -234,8 +261,7 @@ export default function RevisarSolicitudesPage() {
                           type="button"
                           className="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100"
                           title="Ver detalle"
-                          // Aquí luego puedes abrir un panel lateral/modal con más datos
-                          onClick={() => abrirAccion(null, s)}
+                          onClick={() => abrirDetalle(s)}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -269,7 +295,7 @@ export default function RevisarSolicitudesPage() {
         </div>
       </div>
 
-      {/* Modal simple de aprobación / rechazo */}
+      {/* Modal de aprobación / rechazo */}
       {accionActual && solicitudSeleccionada && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
@@ -289,8 +315,8 @@ export default function RevisarSolicitudesPage() {
                 {solicitudSeleccionada.titulo}
               </div>
               <div className="text-slate-500">
-                Código: {solicitudSeleccionada.codigo} · Tipo:{" "}
-                {solicitudSeleccionada.tipoDonativo}
+                ID: {solicitudSeleccionada.id} · Tipo:{" "}
+                {solicitudSeleccionada.tipoRecurso}
               </div>
             </div>
 
@@ -331,6 +357,95 @@ export default function RevisarSolicitudesPage() {
                 {loading ? "Guardando..." : "Confirmar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalle (solo lectura) */}
+      {viewingDetail && solicitudSeleccionada && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            {detailLoading ? (
+              <div className="w-full flex items-center justify-center py-8 text-slate-500">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      {solicitudSeleccionada.titulo}
+                    </h2>
+                    <div className="text-sm text-slate-500">
+                      ID: {solicitudSeleccionada.id} ·{" "}
+                      {solicitudSeleccionada.tipoRecurso}
+                    </div>
+                  </div>
+                  <button
+                    onClick={cerrarModal}
+                    className="text-slate-500 hover:text-slate-700"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+
+                <div className="mt-4 text-sm text-slate-700">
+                  <p className="mb-2">
+                    <strong>Beneficiario:</strong>{" "}
+                    {solicitudSeleccionada.beneficiarioNombre}
+                  </p>
+                  <p className="mb-2">
+                    <strong>Urgencia:</strong> {solicitudSeleccionada.urgencia}
+                  </p>
+                  <p className="mb-2">
+                    <strong>Fecha:</strong>{" "}
+                    {new Date(
+                      solicitudSeleccionada.fechaCreacion,
+                    ).toLocaleString()}
+                  </p>
+                  {solicitudSeleccionada.descripcion && (
+                    <div className="mb-2">
+                      <h3 className="font-semibold">Descripción</h3>
+                      <p className="text-sm text-slate-600 whitespace-pre-line">
+                        {solicitudSeleccionada.descripcion}
+                      </p>
+                    </div>
+                  )}
+                  {solicitudSeleccionada.evidencias &&
+                    solicitudSeleccionada.evidencias.length > 0 && (
+                      <div className="mt-3">
+                        <h3 className="font-semibold">Evidencias</h3>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {solicitudSeleccionada.evidencias.map((e, i) => (
+                            <a
+                              key={i}
+                              href={e}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block border rounded overflow-hidden"
+                            >
+                              <img
+                                src={e}
+                                alt={`evidencia-${i}`}
+                                className="w-full h-28 object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                <div className="mt-5 flex justify-end">
+                  <button
+                    onClick={cerrarModal}
+                    className="px-3 py-1.5 text-xs rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

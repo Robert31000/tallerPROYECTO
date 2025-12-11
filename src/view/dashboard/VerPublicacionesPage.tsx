@@ -9,6 +9,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { DonationModal } from "./DonationModal";
+import { listarCatalogoPublicaciones } from "../../lib/api";
 
 type EstadoPublicacion = "PUBLICADA" | "FINALIZADA";
 
@@ -16,12 +17,13 @@ type Publicacion = {
   id: number;
   codigo: string;
   titulo: string;
-  categoria: string;
+  categoria?: string;
   estado: EstadoPublicacion;
   fechaPublicacion: string;
   resumen: string;
   descripcion: string;
   imagenUrl?: string;
+  imagenes?: string[];
   totalDonado: number;
   metaDonacion?: number;
   numDonaciones: number;
@@ -29,110 +31,8 @@ type Publicacion = {
   comentarios: { id: number; autor: string; mensaje: string; fecha: string }[];
 };
 
-// 🔹 MOCK DE PUBLICACIONES (ejemplo)
-const BASE_PUBLICACIONES: Publicacion[] = [
-  {
-    id: 1,
-    codigo: "DON-2025-001",
-    titulo: "Kits escolares para niños de comunidades rurales",
-    categoria: "EDUCACIÓN",
-    estado: "PUBLICADA",
-    fechaPublicacion: "2025-01-15",
-    resumen:
-      "Campaña para entregar mochilas, cuadernos y útiles a estudiantes de primaria de comunidades rurales.",
-    descripcion:
-      "La campaña busca apoyar a 120 niños y niñas de comunidades rurales que inician la gestión escolar sin los recursos necesarios. " +
-      "Se recolectan mochilas, cuadernos, lápices, colores y otros insumos básicos. " +
-      "Las donaciones serán canalizadas a través de voluntarios de la UAGRM y organizaciones de base.",
-    imagenUrl:
-      "https://images.pexels.com/photos/7029905/pexels-photo-7029905.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    totalDonado: 4500,
-    metaDonacion: 8000,
-    numDonaciones: 23,
-    adjuntos: [
-      {
-        id: 1,
-        nombre: "Carta de solicitud.pdf",
-        url: "#",
-      },
-      {
-        id: 2,
-        nombre: "Plan de distribución.xlsx",
-        url: "#",
-      },
-    ],
-    comentarios: [
-      {
-        id: 1,
-        autor: "Centro de Estudiantes de Sociología",
-        mensaje:
-          "Podemos apoyar con voluntarios para la clasificación y entrega del material.",
-        fecha: "2025-01-18",
-      },
-      {
-        id: 2,
-        autor: "Docente invitado",
-        mensaje:
-          "Excelente iniciativa, revisar también la posibilidad de incluir material de apoyo psicológico.",
-        fecha: "2025-01-19",
-      },
-    ],
-  },
-  {
-    id: 2,
-    codigo: "DON-2025-004",
-    titulo: "Apoyo alimentario para residencia universitaria",
-    categoria: "ALIMENTOS",
-    estado: "PUBLICADA",
-    fechaPublicacion: "2025-02-01",
-    resumen:
-      "Recolecta de alimentos no perecederos para estudiantes de provincia que residen cerca de la UAGRM.",
-    descripcion:
-      "La residencia informal de estudiantes de provincia presenta casos de inseguridad alimentaria. " +
-      "Se solicita apoyo con arroz, fideos, aceite, azúcar y productos enlatados para armar canastas básicas.",
-    imagenUrl:
-      "https://images.pexels.com/photos/6646912/pexels-photo-6646912.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    totalDonado: 2600,
-    metaDonacion: 5000,
-    numDonaciones: 15,
-    adjuntos: [
-      {
-        id: 3,
-        nombre: "Listado de beneficiarios.xlsx",
-        url: "#",
-      },
-    ],
-    comentarios: [
-      {
-        id: 3,
-        autor: "Colectivo Samaipata",
-        mensaje:
-          "Podemos coordinar un día de campaña en la plazuela para recolectar más víveres.",
-        fecha: "2025-02-03",
-      },
-    ],
-  },
-  {
-    id: 3,
-    codigo: "DON-2024-020",
-    titulo: "Campaña de abrigo para invierno",
-    categoria: "VESTIMENTA",
-    estado: "FINALIZADA",
-    fechaPublicacion: "2024-06-10",
-    resumen:
-      "Recolecta de chamarras, frazadas y ropa de invierno para familias de la zona periurbana.",
-    descripcion:
-      "Durante el invierno 2024 se realizó una campaña de abrigo que benefició a más de 80 familias. " +
-      "Esta publicación se mantiene en el catálogo como referencia histórica y para visualizar el impacto logrado.",
-    imagenUrl:
-      "https://images.pexels.com/photos/842980/pexels-photo-842980.jpeg?auto=compress&cs=tinysrgb&w=1200",
-    totalDonado: 0,
-    metaDonacion: undefined,
-    numDonaciones: 0,
-    adjuntos: [],
-    comentarios: [],
-  },
-];
+// initial fallback (empty) — real list comes from API/local mock
+const BASE_PUBLICACIONES: Publicacion[] = [];
 
 export default function CatalogoPublicacionesPage() {
   const [q, setQ] = useState("");
@@ -149,9 +49,57 @@ export default function CatalogoPublicacionesPage() {
   // simulamos autenticación solo para mostrar botones
   const isAuthenticated = true;
 
-  // 🔍 filtrado en memoria sobre el mock
+  const [publicaciones, setPublicaciones] =
+    useState<Publicacion[]>(BASE_PUBLICACIONES);
+
+  // cargar publicaciones desde el backend (o mock local)
+  useEffect(() => {
+    let mounted = true;
+    (async function load() {
+      try {
+        const items = await listarCatalogoPublicaciones();
+        if (!mounted) return;
+        // mapear a la forma de UI
+        const mapped = items.map((it) => {
+          const anyIt = it as unknown as Record<string, unknown>;
+          const evidences = Array.isArray(anyIt.evidencias)
+            ? (anyIt.evidencias as string[])
+            : [];
+          const firstImage = evidences.length > 0 ? evidences[0] : undefined;
+          return {
+            id: it.id,
+            codigo: it.codigoSolicitud || `PUB-${it.id}`,
+            titulo: it.titulo,
+            categoria: ((it.tipoRecurso as string) || "OTROS").toUpperCase(),
+            estado: "PUBLICADA" as EstadoPublicacion,
+            fechaPublicacion: it.fechaPublicacion || new Date().toISOString(),
+            resumen: (anyIt.descripcion as string) || "",
+            descripcion: (anyIt.descripcion as string) || "",
+            imagenUrl:
+              firstImage || (anyIt.imagenPrincipalUrl as string) || undefined,
+            imagenes: evidences.length > 0 ? evidences : undefined,
+            totalDonado: it.totalDonado || 0,
+            metaDonacion: undefined,
+            numDonaciones: Array.isArray(anyIt.donaciones)
+              ? (anyIt.donaciones as unknown[]).length
+              : 0,
+            adjuntos: [],
+            comentarios: [],
+          } as Publicacion;
+        });
+        setPublicaciones(mapped);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // 🔍 filtrado en memoria sobre las publicaciones cargadas
   const publicacionesFiltradas = useMemo(() => {
-    return BASE_PUBLICACIONES.filter((p) => {
+    return publicaciones.filter((p) => {
       if (categoria !== "TODAS" && p.categoria !== categoria) return false;
       if (estado !== "TODOS" && p.estado !== estado) return false;
       if (!q.trim()) return true;
@@ -159,7 +107,7 @@ export default function CatalogoPublicacionesPage() {
       const texto = `${p.titulo} ${p.codigo} ${p.resumen}`.toLowerCase();
       return texto.includes(q.toLowerCase());
     });
-  }, [q, categoria, estado]);
+  }, [q, categoria, estado, publicaciones]);
 
   // seleccionar primera al cambiar filtros
   useEffect(() => {
@@ -235,7 +183,9 @@ export default function CatalogoPublicacionesPage() {
         <select
           className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-50"
           value={estado}
-          onChange={(e) => setEstado(e.target.value as any)}
+          onChange={(e) =>
+            setEstado(e.target.value as EstadoPublicacion | "TODOS")
+          }
         >
           <option value="TODOS">Todos los estados</option>
           <option value="PUBLICADA">Publicadas</option>
@@ -344,13 +294,37 @@ export default function CatalogoPublicacionesPage() {
 
               {/* Cuerpo */}
               <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
-                {seleccionada.imagenUrl && (
+                {/* Galería de imágenes */}
+                {seleccionada.imagenes && seleccionada.imagenes.length > 0 ? (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-800 mb-2">
+                      Evidencias fotográficas
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {seleccionada.imagenes.map((img, idx) => (
+                        <a
+                          key={idx}
+                          href={img}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-lg overflow-hidden border border-slate-200 hover:border-blue-400 transition-colors group"
+                        >
+                          <img
+                            src={img}
+                            alt={`Evidencia ${idx + 1}`}
+                            className="w-full h-24 object-cover group-hover:opacity-75 transition-opacity"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : seleccionada.imagenUrl ? (
                   <img
                     src={seleccionada.imagenUrl}
                     alt={seleccionada.titulo}
                     className="w-full max-h-52 object-cover rounded-lg border border-slate-100"
                   />
-                )}
+                ) : null}
 
                 <div>
                   <h3 className="text-sm font-semibold text-slate-800 mb-1">
@@ -473,15 +447,53 @@ export default function CatalogoPublicacionesPage() {
             codigo: seleccionada.codigo,
             titulo: seleccionada.titulo,
           }}
-          onSuccess={(don) => {
-            // 🔹 Actualizamos números localmente SOLO como mock
-            if (don.tipo === "MONETARIA" && don.monto && seleccionada) {
-              seleccionada.totalDonado += don.monto;
-              seleccionada.numDonaciones += 1;
-            } else {
-              // donación en especie: solo contamos cantidad
-              seleccionada.numDonaciones += 1;
+          onSuccess={async (_don) => {
+            // Recargar publicaciones para reflejar donación
+            try {
+              const items = await listarCatalogoPublicaciones();
+              const mapped = items.map((it) => {
+                const anyIt = it as unknown as Record<string, unknown>;
+                const evidences = Array.isArray(anyIt.evidencias)
+                  ? (anyIt.evidencias as string[])
+                  : [];
+                const firstImage =
+                  evidences.length > 0 ? evidences[0] : undefined;
+                return {
+                  id: it.id,
+                  codigo: it.codigoSolicitud || `PUB-${it.id}`,
+                  titulo: it.titulo,
+                  categoria: (
+                    (it.tipoRecurso as string) || "OTROS"
+                  ).toUpperCase(),
+                  estado: "PUBLICADA" as EstadoPublicacion,
+                  fechaPublicacion:
+                    it.fechaPublicacion || new Date().toISOString(),
+                  resumen: (anyIt.descripcion as string) || "",
+                  descripcion: (anyIt.descripcion as string) || "",
+                  imagenUrl:
+                    firstImage ||
+                    (anyIt.imagenPrincipalUrl as string) ||
+                    undefined,
+                  imagenes: evidences.length > 0 ? evidences : undefined,
+                  totalDonado: it.totalDonado || 0,
+                  metaDonacion: undefined,
+                  numDonaciones: Array.isArray(anyIt.donaciones)
+                    ? (anyIt.donaciones as unknown[]).length
+                    : 0,
+                  adjuntos: [],
+                  comentarios: [],
+                } as Publicacion;
+              });
+              setPublicaciones(mapped);
+              // actualizar la seleccionada también
+              const actualizada = mapped.find((p) => p.id === seleccionada.id);
+              if (actualizada) {
+                setSeleccionada(actualizada);
+              }
+            } catch (e) {
+              console.error("Error reloading publications after donation:", e);
             }
+            setShowDonationModal(false);
           }}
         />
       )}

@@ -1,17 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  listarEventos,
+  registrarEvento,
+  listarPublicaciones,
+} from "../../lib/api";
+import type { PublicacionCatalogoItem } from "../../lib/api";
 
 type EstadoEvento = "PLANIFICADO" | "EN_CURSO" | "FINALIZADO";
-
-type Campania = {
-  id: string;
-  nombre: string;
-};
 
 type EventoSolidario = {
   id: number;
   nombre: string;
-  campaniaId: string;
-  campaniaNombre: string;
+  publicacionId: string;
+  publicacionTitulo: string;
   tipo: string;
   fecha: string;
   lugar: string;
@@ -21,51 +22,27 @@ type EventoSolidario = {
   descripcion?: string;
 };
 
-const mockCampanias: Campania[] = [
-  { id: "CAMP-001", nombre: "Fondo Solidario Samaipata 2025" },
-  { id: "CAMP-002", nombre: "Campaña Útiles para Todos" },
-  { id: "CAMP-003", nombre: "Navidad Solidaria UAGRM" },
-];
+interface EventForm {
+  nombre: string;
+  publicacionId: string;
+  tipo: string;
+  fecha: string;
+  lugar: string;
+  metaRecaudacion: string;
+  canalDifusion: string;
+  estado: EstadoEvento;
+  descripcion: string;
+}
 
-const initialEventos: EventoSolidario[] = [
-  {
-    id: 1,
-    nombre: "Kermesse Solidaria Sociología",
-    campaniaId: "CAMP-001",
-    campaniaNombre: "Fondo Solidario Samaipata 2025",
-    tipo: "KERMESSE",
-    fecha: "2025-11-15",
-    lugar: "Campus UAGRM - Bloque Sociología",
-    metaRecaudacion: 5000,
-    canalDifusion: "Redes sociales, afiches en facultad",
-    estado: "FINALIZADO",
-    descripcion: "Actividad gastronómica y cultural para recaudar fondos.",
-  },
-  {
-    id: 2,
-    nombre: "Colecta de víveres no perecederos",
-    campaniaId: "CAMP-002",
-    campaniaNombre: "Campaña Útiles para Todos",
-    tipo: "COLECTA",
-    fecha: "2025-12-05",
-    lugar: "Hall central UAGRM",
-    metaRecaudacion: 0,
-    canalDifusion: "WhatsApp institucional y correo",
-    estado: "EN_CURSO",
-    descripcion:
-      "Recojo de víveres y útiles escolares para familias vulnerables.",
-  },
-];
-
-const emptyForm = {
+const emptyForm: EventForm = {
   nombre: "",
-  campaniaId: mockCampanias[0]?.id ?? "",
+  publicacionId: "",
   tipo: "",
   fecha: "",
   lugar: "",
   metaRecaudacion: "",
   canalDifusion: "",
-  estado: "PLANIFICADO" as EstadoEvento,
+  estado: "PLANIFICADO",
   descripcion: "",
 };
 
@@ -84,8 +61,13 @@ const tiposEvento = [
 ];
 
 const EventosSolidariosPage: React.FC = () => {
-  const [eventos, setEventos] = useState<EventoSolidario[]>(initialEventos);
-  const [form, setForm] = useState(emptyForm);
+  const [eventos, setEventos] = useState<EventoSolidario[]>([]);
+  const [form, setForm] = useState<EventForm>(emptyForm);
+  const [publicaciones, setPublicaciones] = useState<PublicacionCatalogoItem[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedEstadoFilter, setSelectedEstadoFilter] = useState<
     EstadoEvento | "TODOS"
   >("TODOS");
@@ -110,26 +92,50 @@ const EventosSolidariosPage: React.FC = () => {
       return;
     }
 
-    const campania = mockCampanias.find((c) => c.id === form.campaniaId);
-
-    const nuevo: EventoSolidario = {
-      id: eventos.length ? Math.max(...eventos.map((e) => e.id)) + 1 : 1,
-      nombre: form.nombre.trim(),
-      campaniaId: form.campaniaId,
-      campaniaNombre: campania?.nombre ?? "Campaña sin nombre",
-      tipo: form.tipo || "OTRO",
-      fecha: form.fecha,
-      lugar: form.lugar.trim(),
-      metaRecaudacion: form.metaRecaudacion
-        ? Number(form.metaRecaudacion)
-        : undefined,
-      canalDifusion: form.canalDifusion.trim() || "No especificado",
-      estado: form.estado,
-      descripcion: form.descripcion.trim() || undefined,
-    };
-
-    setEventos((prev) => [nuevo, ...prev]);
-    setForm(emptyForm);
+    (async () => {
+      try {
+        setError(null);
+        const publicacion = publicaciones.find(
+          (p) => String(p.id) === String(form.publicacionId),
+        );
+        const payload = {
+          nombre: form.nombre.trim(),
+          publicacionId: publicacion ? Number(publicacion.id) : undefined,
+          publicacionTitulo: publicacion?.titulo || undefined,
+          tipo: form.tipo || "OTRO",
+          fecha: form.fecha,
+          lugar: form.lugar.trim(),
+          metaRecaudacion: form.metaRecaudacion
+            ? Number(form.metaRecaudacion)
+            : undefined,
+          canalDifusion: form.canalDifusion.trim() || "No especificado",
+          estado: form.estado,
+          descripcion: form.descripcion.trim() || undefined,
+        };
+        const created = await registrarEvento(payload);
+        // map created evento (from API) to UI shape
+        const mapped: EventoSolidario = {
+          id: created.id,
+          nombre: created.nombre,
+          publicacionId: created.publicacionId
+            ? String(created.publicacionId)
+            : "",
+          publicacionTitulo: created.publicacionTitulo || "",
+          tipo: created.tipo,
+          fecha: created.fecha,
+          lugar: created.lugar,
+          metaRecaudacion: created.metaRecaudacion,
+          canalDifusion: created.canalDifusion || "",
+          estado: created.estado as EstadoEvento,
+          descripcion: created.descripcion,
+        };
+        setEventos((prev) => [mapped, ...prev]);
+        setForm(emptyForm);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudo registrar el evento");
+      }
+    })();
   };
 
   const handleChangeEstado = (id: number, estado: EstadoEvento) => {
@@ -143,12 +149,51 @@ const EventosSolidariosPage: React.FC = () => {
       ? eventos
       : eventos.filter((e) => e.estado === selectedEstadoFilter);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Load publicaciones (campañas/solicitudes aprobadas)
+        const pubs = await listarPublicaciones();
+        if (mounted) setPublicaciones(pubs);
+        // Load eventos
+        const list = await listarEventos();
+        if (!mounted) return;
+        // map API events to UI shape
+        const mapped = list.map((it) => ({
+          id: it.id,
+          nombre: it.nombre,
+          publicacionId: it.publicacionId ? String(it.publicacionId) : "",
+          publicacionTitulo: it.publicacionTitulo || "",
+          tipo: it.tipo,
+          fecha: it.fecha,
+          lugar: it.lugar,
+          metaRecaudacion: it.metaRecaudacion,
+          canalDifusion: it.canalDifusion || "",
+          estado: it.estado as EstadoEvento,
+          descripcion: it.descripcion,
+        }));
+        setEventos(mapped);
+      } catch (e) {
+        console.error(e);
+        setError("No se pudieron cargar los datos");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Encabezado */}
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-slate-900">
-          CU18 – Registrar eventos solidarios
+          Registrar eventos solidarios
         </h1>
         <p className="text-sm text-slate-600 max-w-2xl">
           Registra kermesses, colectas y otras actividades solidarias vinculadas
@@ -186,14 +231,15 @@ const EventosSolidariosPage: React.FC = () => {
                 Campaña asociada
               </label>
               <select
-                name="campaniaId"
-                value={form.campaniaId}
+                name="publicacionId"
+                value={form.publicacionId}
                 onChange={handleChange}
                 className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {mockCampanias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
+                <option value="">Seleccionar campaña (publicación)…</option>
+                {publicaciones.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.titulo}
                   </option>
                 ))}
               </select>
@@ -353,7 +399,17 @@ const EventosSolidariosPage: React.FC = () => {
             </div>
           </div>
 
-          {eventosFiltrados.length === 0 ? (
+          {error && (
+            <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center text-sm text-slate-500 py-8">
+              Cargando eventos...
+            </div>
+          ) : eventosFiltrados.length === 0 ? (
             <div className="text-center text-sm text-slate-500 py-8">
               No hay eventos registrados para el filtro seleccionado.
             </div>
@@ -371,7 +427,9 @@ const EventosSolidariosPage: React.FC = () => {
                       </h3>
                       <p className="text-xs text-slate-500">
                         Campaña:{" "}
-                        <span className="font-medium">{ev.campaniaNombre}</span>
+                        <span className="font-medium">
+                          {ev.publicacionTitulo || "Sin asignar"}
+                        </span>
                       </p>
                     </div>
                     <select
