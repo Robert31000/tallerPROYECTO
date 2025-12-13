@@ -3,7 +3,12 @@
 // app/dashboard-donante/page.tsx
 
 import { useMemo, useState } from "react";
-import { PublicationCard, type Publication } from "./PublicationCard";
+import {
+  PublicationCard,
+  type Publication,
+  type Comment,
+} from "./PublicationCard";
+import DonanteNavbar from "./DonanteNavbar";
 
 const publications: Publication[] = [
   {
@@ -52,94 +57,201 @@ const publications: Publication[] = [
   },
 ];
 
+const STORAGE_KEY = "uagrm-donante-comments-v1";
+
 export default function DashboardDonante() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filtrar publicaciones según lo que se escriba en el buscador
+  // Cargar comentarios desde localStorage (solo en cliente)
+  const [comments, setComments] = useState<Comment[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw) as Comment[];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveComments = (next: Comment[]) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const generateJsonFileForPublication = (
+    publicationId: number,
+    pubComments: Comment[],
+  ) => {
+    if (typeof window === "undefined") return;
+
+    const json = JSON.stringify(pubComments, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `comentarios_publicacion_${publicationId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAddComment = (pubId: number, text: string) => {
+    const newComment: Comment = {
+      id: `${pubId}-${Date.now()}`,
+      publicationId: pubId,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+
+    setComments((prev) => {
+      const updated = [...prev, newComment];
+      saveComments(updated);
+
+      const pubComments = updated.filter(
+        (c) => c.publicationId === pubId,
+      );
+      generateJsonFileForPublication(pubId, pubComments);
+
+      return updated;
+    });
+  };
+
+  // Filtrar publicaciones según buscador
   const filteredPublications = useMemo(() => {
     if (!searchTerm.trim()) return publications;
 
     const term = searchTerm.toLowerCase();
 
     return publications.filter((pub) =>
-      [
-        pub.title,
-        pub.description,
-        pub.category,
-      ]
+      [pub.title, pub.description, pub.category]
         .join(" ")
         .toLowerCase()
-        .includes(term)
+        .includes(term),
     );
   }, [searchTerm]);
 
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* NAVBAR SUPERIOR */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2">
-          {/* Logo + título */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-slate-900 text-sm font-bold text-white">
-              U
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 text-slate-900">
+      {/* NAVBAR SUPERIOR COMO COMPONENTE */}
+      <DonanteNavbar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
+
+      {/* CONTENIDO */}
+      <main className="mx-auto max-w-6xl px-4 pb-10 pt-6">
+        {/* CINTA DE RESUMEN SUPERIOR */}
+        <section className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Tu resumen como donante
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              Gracias por ser parte de la red solidaria de la UAGRM 💚
+            </p>
+            <div className="mt-3 grid gap-3 text-xs sm:grid-cols-3">
+              <div className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[0.7rem] text-slate-500">
+                  Monto total donado
+                </p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
+                  Bs. 4,320
+                </p>
+                <p className="mt-1 text-[0.65rem] text-slate-500">
+                  Desde que te uniste a la plataforma.
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[0.7rem] text-slate-500">
+                  Campañas apoyadas
+                </p>
+                <p className="mt-1 text-lg font-semibold text-slate-900">
+                  9
+                </p>
+                <p className="mt-1 text-[0.65rem] text-slate-500">
+                  Niños, emergencias y educación.
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[0.7rem] text-slate-500">Nivel solidario</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-lg font-semibold text-slate-900">
+                    Bronce
+                  </p>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.65rem] font-semibold text-amber-700">
+                    + a 680 Bs. para Plata
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-slate-900"
+                    style={{ width: "65%" }}
+                  />
+                </div>
+              </div>
             </div>
-            <span className="text-sm font-semibold">UAGRM Donaciones</span>
           </div>
 
-          {/* 🔍 Buscador que filtra el feed */}
-          <div className="flex-1">
-            <div className="relative max-w-md">
-              <input
-                className="w-full rounded-md bg-slate-100 px-8 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-900/10"
-                placeholder="Buscar campañas, hogares, emergencias..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <span className="pointer-events-none absolute left-2 top-1.5 text-sm text-slate-400">
-                🔍
-              </span>
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p className="text-xs font-semibold text-slate-900">
+              Acción rápida
+            </p>
+            <p className="mt-1 text-[0.75rem] text-slate-600">
+              Elige cómo quieres ayudar hoy:
+            </p>
+            <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+              <button className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:bg-white">
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    Donar a una campaña
+                  </p>
+                  <p className="text-[0.7rem] text-slate-500">
+                    Apoya con un monto económico.
+                  </p>
+                </div>
+                <span>❤️</span>
+              </button>
+              <button className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left hover:bg-white">
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    Donación en especie
+                  </p>
+                  <p className="text-[0.7rem] text-slate-500">
+                    Alimentos, ropa, medicamentos, etc.
+                  </p>
+                </div>
+                <span>📦</span>
+              </button>
             </div>
+            {searchTerm.trim() && (
+              <p className="mt-3 text-[0.7rem] text-slate-500">
+                Buscando campañas relacionadas con{" "}
+                <span className="font-semibold text-slate-900">
+                  “{searchTerm}”
+                </span>
+                .
+              </p>
+            )}
           </div>
+        </section>
 
-          {/* Menú tipo iconos */}
-          <nav className="hidden items-center gap-6 text-xs text-slate-600 md:flex">
-            <button className="flex flex-col items-center gap-0.5 text-slate-900">
-              <span>🏠</span>
-              <span>Inicio</span>
-            </button>
-            <button className="flex flex-col items-center gap-0.5 hover:text-slate-900">
-              <span>❤️</span>
-              <span>Mis donaciones</span>
-            </button>
-            <button className="flex flex-col items-center gap-0.5 hover:text-slate-900">
-              <span>📢</span>
-              <span>Campañas</span>
-            </button>
-            <button className="flex flex-col items-center gap-0.5 hover:text-slate-900">
-              <span>🔔</span>
-              <span>Alertas</span>
-            </button>
-          </nav>
-
-          {/* Avatar / Yo */}
-          <button className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-800 shadow-sm md:flex">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[0.7rem] font-bold text-white">
-              D
-            </span>
-            <span>Yo</span>
-          </button>
-        </div>
-      </header>
-
-      {/* LAYOUT PRINCIPAL 3 COLUMNAS */}
-      <main className="mx-auto max-w-6xl px-4 py-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[260px_minmax(0,2fr)_280px]">
+        {/* LAYOUT PRINCIPAL 3 COLUMNAS */}
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-[260px_minmax(0,2fr)_260px]">
           {/* COLUMNA IZQUIERDA – PERFIL */}
           <aside className="space-y-3">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="h-12 bg-gradient-to-r from-slate-200 to-slate-100" />
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm">
+              <div className="h-14 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900" />
               <div className="flex flex-col items-center px-4 pb-4">
-                <div className="-mt-6 h-16 w-16 rounded-full border-2 border-white bg-slate-300" />
+                <img
+                  src="/src/assets/perfil.jpeg"
+                  alt="Foto de perfil"
+                  className="mt-[-1.5rem] h-16 w-16 rounded-full border-2 border-white shadow-sm"
+                />
                 <p className="mt-2 text-sm font-semibold text-slate-900">
                   Robert Lorenzo Na...
                 </p>
@@ -149,17 +261,17 @@ export default function DashboardDonante() {
                 <p className="mt-1 text-[0.7rem] text-slate-500">
                   Santa Cruz, Bolivia
                 </p>
-                <button className="mt-3 w-full rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50">
+                <button className="mt-3 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50">
                   Ver perfil
                 </button>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3 text-[0.75rem] shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 text-[0.75rem] shadow-sm">
               <p className="font-semibold text-slate-900">
                 Resumen de tu impacto
               </p>
-              <div className="mt-2 space-y-1.5">
+              <div className="mt-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <span>Personas alcanzadas</span>
                   <span className="font-semibold text-slate-900">27</span>
@@ -169,15 +281,13 @@ export default function DashboardDonante() {
                   <span className="font-semibold text-slate-900">9</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Monto total donado</span>
-                  <span className="font-semibold text-slate-900">
-                    Bs. 4,320
-                  </span>
+                  <span>Donaciones este mes</span>
+                  <span className="font-semibold text-slate-900">3</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3 text-[0.75rem] shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 text-[0.75rem] shadow-sm">
               <p className="font-semibold text-slate-900">Accesos rápidos</p>
               <ul className="mt-2 space-y-1.5">
                 <li className="cursor-pointer text-slate-600 hover:text-slate-900">
@@ -194,67 +304,43 @@ export default function DashboardDonante() {
           </aside>
 
           {/* COLUMNA CENTRAL – FEED / PUBLICACIONES */}
-          <section className="space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-sm">
+         <section className="space-y-3">
+            {/* Card de texto de introducción */}
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 text-xs shadow-sm">
               <p className="text-sm font-semibold text-slate-900">
-                Hola, donante solidario 👋
+                Campañas activas 💡
               </p>
               <p className="mt-1 text-slate-600">
-                Explora las campañas activas y apoya donde más se necesita.
+                Explora las campañas creadas por la UAGRM y elige dónde quieres
+                hacer la diferencia hoy.
               </p>
-              {searchTerm.trim() && (
-                <p className="mt-2 text-[0.7rem] text-slate-500">
-                  Mostrando resultados para:{" "}
-                  <span className="font-semibold text-slate-900">
-                    &quot;{searchTerm}&quot;
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                  D
-                </div>
-                <button className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-left text-xs text-slate-500 hover:bg-white">
-                  Realiza una donación rápida o deja un mensaje de apoyo...
-                </button>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-[0.7rem] text-slate-600">
-                <button className="flex items-center gap-1 hover:text-slate-900">
-                  <span>❤️</span>
-                  <span>Donar a una campaña</span>
-                </button>
-                <button className="flex items-center gap-1 hover:text-slate-900">
-                  <span>📦</span>
-                  <span>Donación en especie</span>
-                </button>
-                <button className="hidden items-center gap-1 hover:text-slate-900 sm:flex">
-                  <span>📄</span>
-                  <span>Ver historial</span>
-                </button>
-              </div>
             </div>
 
             {filteredPublications.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/90 p-6 text-center text-xs text-slate-500">
                 No se encontraron campañas que coincidan con{" "}
                 <span className="font-semibold text-slate-900">
-                  &quot;{searchTerm}&quot;
+                  “{searchTerm}”
                 </span>
-                . Intenta con otra palabra.
+                . Intenta con otra palabra clave.
               </div>
             ) : (
               filteredPublications.map((pub) => (
-                <PublicationCard key={pub.id} pub={pub} />
+                <PublicationCard
+                  key={pub.id}
+                  pub={pub}
+                  comments={comments.filter(
+                    (c) => c.publicationId === pub.id,
+                  )}
+                  onAddComment={handleAddComment}
+                />
               ))
             )}
           </section>
 
-          {/* COLUMNA DERECHA – RECOMENDACIONES */}
+          {/* COLUMNA DERECHA – RECOMENDACIONES / INFO */}
           <aside className="space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 text-[0.75rem] shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 text-[0.75rem] shadow-sm">
               <p className="font-semibold text-slate-900">
                 Campañas recomendadas
               </p>
@@ -262,13 +348,13 @@ export default function DashboardDonante() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-xs font-semibold text-slate-900">
-                      Hogar de niños &quot;Luz de Esperanza&quot;
+                      Hogar de niños “Luz de Esperanza”
                     </p>
                     <p className="text-[0.7rem] text-slate-600">
                       Necesita apoyo mensual para alimentos.
                     </p>
                   </div>
-                  <button className="rounded-full border border-slate-200 px-3 py-1 text-[0.7rem] font-medium text-slate-900">
+                  <button className="rounded-full border border-slate-200 px-3 py-1 text-[0.7rem] font-medium text-slate-900 hover:bg-slate-50">
                     Ver
                   </button>
                 </div>
@@ -281,19 +367,19 @@ export default function DashboardDonante() {
                       Kits de higiene y víveres para familias.
                     </p>
                   </div>
-                  <button className="rounded-full border border-slate-200 px-3 py-1 text-[0.7rem] font-medium text-slate-900">
+                  <button className="rounded-full border border-slate-200 px-3 py-1 text-[0.7rem] font-medium text-slate-900 hover:bg-slate-50">
                     Ver
                   </button>
                 </div>
               </div>
-              <button className="mt-2 text-[0.7rem] font-semibold text-slate-900">
+              <button className="mt-2 text-[0.7rem] font-semibold text-slate-900 hover:underline">
                 Ver todas las campañas →
               </button>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3 text-[0.7rem] text-slate-600 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-3 text-[0.7rem] text-slate-600 shadow-sm">
               <p className="mb-2 text-xs font-semibold text-slate-900">
-                Información
+                Información y ayuda
               </p>
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 <button className="hover:underline">Centro de ayuda</button>
@@ -302,11 +388,12 @@ export default function DashboardDonante() {
                 <button className="hover:underline">Acerca de</button>
               </div>
               <p className="mt-3 text-[0.65rem] text-slate-500">
-                © {new Date().getFullYear()} Sistema de Donaciones UAGRM
+                © {new Date().getFullYear()} Sistema de Donaciones UAGRM. Hecho
+                para transparencia y solidaridad.
               </p>
             </div>
           </aside>
-        </div>
+        </section>
       </main>
     </div>
   );
