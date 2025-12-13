@@ -285,15 +285,16 @@ function initialStore(): Store {
     users: [
       {
         id: 1,
-        email: "admin@local",
-        password: "admin",
+        email: "admin@local.com",
+        // contraseña actualizada a >=6 caracteres para pasar la validación del formulario
+        password: "admin123",
         nombre: "Administrador",
         rol: "admin",
       },
       {
         id: 2,
-        email: "donante@local",
-        password: "donor",
+        email: "donante@local.com",
+        password: "donor123",
         nombre: "Donante",
         rol: "donante",
       },
@@ -345,7 +346,13 @@ function readStore(): Store {
       localStorage.setItem(LS_KEY, JSON.stringify(s));
       return s;
     }
-    return JSON.parse(raw) as Store;
+    const parsed = JSON.parse(raw) as Store;
+    // Ensure we always have at least the default users (in case store was overwritten)
+    if (!parsed.users || parsed.users.length === 0) {
+      parsed.users = initialStore().users;
+      localStorage.setItem(LS_KEY, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch (e) {
     console.error(e);
     const s = initialStore();
@@ -816,5 +823,11 @@ export async function listarEventos(estado?: string, _token?: string) {
 
 export async function login(email: string, password: string) {
   const res = await api.post("/auth/login", { email, password });
-  return res.data as LoginResponse;
+  const data = res.data as any;
+  if (!data || typeof data.token !== "string") {
+    // propagate server message when available
+    const msg = (data && data.message) || "Credenciales inválidas";
+    throw new Error(String(msg));
+  }
+  return data as LoginResponse;
 }
