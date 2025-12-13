@@ -103,7 +103,7 @@ export default function NuevaSolicitudPage() {
     <div className="max-w-4xl mx-auto">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Nueva solicitud de donación
+          Crear solicitud de donación
         </h1>
         <p className="text-sm text-slate-500">
           Registra una nueva solicitud y adjunta evidencias (solo imágenes).
